@@ -5,8 +5,7 @@ const classFields = require('acorn-class-fields');
 var ENV = require(process.cwd() + '/config/environment');
 const fs = require('fs');
 
-var baseURL,
-  routerFound = false,
+var baseURL, routerFound = false,
   fileData = '',
   routeArray = [];
 
