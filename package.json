@@ -76,8 +76,8 @@
     "configPath": "tests/dummy/config"
   },
   "dependencies": {
-    "ember-cli-htmlbars": "^5.3.1",
-    "acorn": "^6.0.2",
-    "acorn-class-fields": "^1.0.0"
+    "acorn": "^8.5.0",
+    "acorn-class-fields": "^1.0.0",
+    "ember-cli-htmlbars": "^5.3.1"
   }
 }
