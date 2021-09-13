@@ -5,13 +5,15 @@ const classFields = require('acorn-class-fields');
 var ENV = require(process.cwd() + '/config/environment');
 const fs = require('fs');
 
-var baseURL, routerFound = false,
+var baseURL,
+  routerFound = false,
   fileData = '',
   routeArray = [];
 
 const pathForRouterJS = 'app/router.js',
   currentDate = new Date();
-const header = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+const header =
+  '<?xml version="1.0" encoding="UTF-8"?>\n' +
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
 let nestedPath = [];
