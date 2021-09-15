@@ -191,17 +191,20 @@ function writeToFile() {
   }
 
   routeArray.map(function (x, i) {
-    if (i == 0) fileData += header; // Write the header
-    priority = "0.9";
-    var regex = /\//g;
-    let currentPath = routeArray[i].path;
-    let currentPriority = priority;
-    isIgnored = false;
-    ignoreArry.map(function (b, y) {
-      if (ignoreArry[y] == currentPath)
-        isIgnored = true;
-    })
-
+    let currentPriority = '0.9';
+    let isIgnored = false;
+    if (i == 0) {
+      fileData += header; // Write the header
+    } else {
+      var regex = /\//g;
+      let currentPath = routeArray[i].path;
+      currentPriority = priority;
+      ignoreArry.map(function (b, y) {
+        if (ignoreArry[y] == currentPath){
+          isIgnored = true;
+        }
+      });
+    }
 
     if (ENV().sitemapAutogenerator === undefined || ENV().sitemapAutogenerator.ignoreTheseRoutes === undefined || isIgnored !== true) {
       fileData += ('\n  <url>\n    <loc>');
