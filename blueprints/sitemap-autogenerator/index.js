@@ -47,9 +47,9 @@ module.exports = {
       let arrayToMap = parseResults.body;
       arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
         if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
-
           routerFound = true;
           let innerArrayToMap = item.expression.arguments[0].body.body;
+          isSingleOrNestedRoute()
           innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
             isSingleOrNestedRoute(item.expression.arguments);
           });
@@ -85,74 +85,81 @@ function processPath(path, message) {
 }
 
 function isSingleOrNestedRoute(itemExpressionArgument) {
-  if (itemExpressionArgument.length !== undefined) {
+  if (itemExpressionArgument === undefined) {
+    routeArray.push({
+      completeRoute: '',
+      path: '/'
+    });
+  } else {
+    if (itemExpressionArgument.length !== undefined) {
 
-    if (itemExpressionArgument.length === 1) {
-      processPath(itemExpressionArgument[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
+      if (itemExpressionArgument.length === 1) {
+        processPath(itemExpressionArgument[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
 
-    } else if (itemExpressionArgument.length === 2 && itemExpressionArgument[1].properties !== undefined && itemExpressionArgument[1].properties[0].key.name === "path") {
-      processPath(itemExpressionArgument[1].properties[0].value.value, '*** It\'s a simple route with a specified path ->')
-    } else if (itemExpressionArgument.length === 2 && itemExpressionArgument[1].properties === undefined && itemExpressionArgument[1].body.body.length === 0) {
-      processPath(itemExpressionArgument[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
+      } else if (itemExpressionArgument.length === 2 && itemExpressionArgument[1].properties !== undefined && itemExpressionArgument[1].properties[0].key.name === "path") {
+        processPath(itemExpressionArgument[1].properties[0].value.value, '*** It\'s a simple route with a specified path ->')
+      } else if (itemExpressionArgument.length === 2 && itemExpressionArgument[1].properties === undefined && itemExpressionArgument[1].body.body.length === 0) {
+        processPath(itemExpressionArgument[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
 
-    } else if (itemExpressionArgument.length === 3 && itemExpressionArgument[1].properties !== undefined && itemExpressionArgument[1].properties[0].key.name === "path") {
-      processPath(itemExpressionArgument[1].properties[0].value.value, '*** It\'s a simple route with a specified path ->')
-      nestedPath.push(itemExpressionArgument[1].properties[0].value.value);
-      // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[1].properties[0].value.value);
-      // console.log('nestedPath:', nestedPath);
-      let itemExpressionArgumentToRecurse = itemExpressionArgument[2].body.body;
-      itemExpressionArgumentToRecurse.map(function (item, index) {
-        isSingleOrNestedRoute(item);
-        if (index === itemExpressionArgumentToRecurse.length - 1) {
-          nestedPath.pop();
+      } else if (itemExpressionArgument.length === 3 && itemExpressionArgument[1].properties !== undefined && itemExpressionArgument[1].properties[0].key.name === "path") {
+        processPath(itemExpressionArgument[1].properties[0].value.value, '*** It\'s a simple route with a specified path ->')
+        nestedPath.push(itemExpressionArgument[1].properties[0].value.value);
+        // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[1].properties[0].value.value);
+        // console.log('nestedPath:', nestedPath);
+        let itemExpressionArgumentToRecurse = itemExpressionArgument[2].body.body;
+        itemExpressionArgumentToRecurse.map(function (item, index) {
+          isSingleOrNestedRoute(item);
+          if (index === itemExpressionArgumentToRecurse.length - 1) {
+            nestedPath.pop();
+          }
+        });
+      } else {
+        if (itemExpressionArgument[1].type != undefined && itemExpressionArgument[1].type === "FunctionExpression") {
+
+          nestedPath.push(itemExpressionArgument[0].value);
+          // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[0].value);
+          // console.log('nestedPath:', nestedPath);
+          let itemExpressionArgumentToRecurse = itemExpressionArgument[1].body.body;
+          itemExpressionArgumentToRecurse.map(function (item, index) {
+
+            isSingleOrNestedRoute(item);
+            if (index === itemExpressionArgumentToRecurse.length - 1) {
+
+              nestedPath.pop();
+              // console.log('nestedPath:', nestedPath);
+            }
+          });
         }
-      });
-    } else {
-      if (itemExpressionArgument[1].type != undefined && itemExpressionArgument[1].type === "FunctionExpression") {
-
-        nestedPath.push(itemExpressionArgument[0].value);
-        // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[0].value);
-        // console.log('nestedPath:', nestedPath);
-        let itemExpressionArgumentToRecurse = itemExpressionArgument[1].body.body;
-        itemExpressionArgumentToRecurse.map(function (item, index) {
-
-          isSingleOrNestedRoute(item);
-          if (index === itemExpressionArgumentToRecurse.length - 1) {
-
-            nestedPath.pop();
-            // console.log('nestedPath:', nestedPath);
-          }
-        });
       }
-    }
-  } else { // Necessary for recursed routes
-    if (itemExpressionArgument.expression.arguments.length === 1) {
-      processPath(itemExpressionArgument.expression.arguments[0].value, '  *** It\'s a simple route, no nesting, and no specified path ->');
-    } else if (itemExpressionArgument.expression.arguments.length === 2 && itemExpressionArgument.expression.arguments[1].properties !== undefined && itemExpressionArgument.expression.arguments[1].properties[0].key.name === "path") {
-      // console.log('!!!', itemExpressionArgument.expression.arguments[1].properties[0].value.value);
-      processPath(itemExpressionArgument.expression.arguments[1].properties[0].value.value, '  *** It\'s a simple route with a specified path ->');
-    } else if (itemExpressionArgument.expression.arguments.length === 3 && itemExpressionArgument.expression.arguments[1].properties !== undefined && itemExpressionArgument.expression.arguments[1].properties[0].key.name === "path" && itemExpressionArgument.expression.arguments[2].body.body.length === 0) {
-      // console.log('!!!', itemExpressionArgument.expression.arguments[1].properties[0].value.value);
-      processPath(itemExpressionArgument.expression.arguments[1].properties[0].value.value, '  *** It\'s a simple route with a specified path ->');
-    } else {
+    } else { // Necessary for recursed routes
+      if (itemExpressionArgument.expression.arguments.length === 1) {
+        processPath(itemExpressionArgument.expression.arguments[0].value, '  *** It\'s a simple route, no nesting, and no specified path ->');
+      } else if (itemExpressionArgument.expression.arguments.length === 2 && itemExpressionArgument.expression.arguments[1].properties !== undefined && itemExpressionArgument.expression.arguments[1].properties[0].key.name === "path") {
+        // console.log('!!!', itemExpressionArgument.expression.arguments[1].properties[0].value.value);
+        processPath(itemExpressionArgument.expression.arguments[1].properties[0].value.value, '  *** It\'s a simple route with a specified path ->');
+      } else if (itemExpressionArgument.expression.arguments.length === 3 && itemExpressionArgument.expression.arguments[1].properties !== undefined && itemExpressionArgument.expression.arguments[1].properties[0].key.name === "path" && itemExpressionArgument.expression.arguments[2].body.body.length === 0) {
+        // console.log('!!!', itemExpressionArgument.expression.arguments[1].properties[0].value.value);
+        processPath(itemExpressionArgument.expression.arguments[1].properties[0].value.value, '  *** It\'s a simple route with a specified path ->');
+      } else {
 
-      if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length > 0) {
-        nestedPath.push(itemExpressionArgument.expression.arguments[0].value);
-        // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument.expression.arguments[0].value);
-        // console.log('nestedPath:', nestedPath);
-        let itemExpressionArgumentToRecurse = itemExpressionArgument.expression.arguments[1].body.body;
-        itemExpressionArgumentToRecurse.map(function (item, index) {
-          isSingleOrNestedRoute(item);
-          if (index === itemExpressionArgumentToRecurse.length - 1) {
-            nestedPath.pop();
-            // console.log('nestedPath:', nestedPath);
-          }
-        });
-      }
-      else if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length === 0) {
+        if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length > 0) {
+          nestedPath.push(itemExpressionArgument.expression.arguments[0].value);
+          // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument.expression.arguments[0].value);
+          // console.log('nestedPath:', nestedPath);
+          let itemExpressionArgumentToRecurse = itemExpressionArgument.expression.arguments[1].body.body;
+          itemExpressionArgumentToRecurse.map(function (item, index) {
+            isSingleOrNestedRoute(item);
+            if (index === itemExpressionArgumentToRecurse.length - 1) {
+              nestedPath.pop();
+              // console.log('nestedPath:', nestedPath);
+            }
+          });
+        }
+        else if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length === 0) {
 
-        processPath(itemExpressionArgument.expression.arguments[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
+          processPath(itemExpressionArgument.expression.arguments[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
 
+        }
       }
     }
   }
@@ -185,6 +192,7 @@ function writeToFile() {
 
   routeArray.map(function (x, i) {
     if (i == 0) fileData += header; // Write the header
+    priority = "0.9";
     var regex = /\//g;
     let currentPath = routeArray[i].path;
     let currentPriority = priority;
@@ -218,7 +226,7 @@ function writeToFile() {
 
 function writeToFileData(i, showLog, isIgnored) {
   let isIgnoredMessage = '** Ignored path:';
-  let pathString = baseURL;
+  let pathString = baseURL
   if (routeArray[i].completeRoute !== "") {
     let routeString;
     if (routeArray[i].completeRoute.charAt(0) === "/") routeString = routeArray[i].completeRoute.substr(1);
