@@ -1,5 +1,5 @@
 {
-  "name": "sitemap-autogenerator",
+  "name": "@summit-electric-supply/sitemap-autogenerator",
   "version": "1.3.0",
   "description": "An ember-cli addon to parse router.js and automatically generate a sitemap.xml.",
   "keywords": [
@@ -7,12 +7,9 @@
     "router.js-parser",
     "sitemap.xml-generator"
   ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wackerservices/SitemapAutogenerator"
-  },
+  "repository": "https://github.com/summit-electric-supply/SitemapAutogenerator",
   "license": "MIT",
-  "author": "Ross Updegraff <npm.rupdegraff@chicagoventure.com",
+  "author": "Andrei hristian (https://github.com/ahristian)",
   "directories": {
     "doc": "doc",
     "test": "tests"
