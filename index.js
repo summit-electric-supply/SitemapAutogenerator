@@ -37,44 +37,55 @@ if (ENV().sitemapAutogenerator !== undefined && ENV().sitemapAutogenerator.ignor
 }
 
 module.exports = {
-  triggerSitemapBuilder() {
-    let fileName = ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
-    baseURL = fileName;
-    fs.readFile(pathForRouterJS, 'utf8', function (err, data) {
-      if (err) return console.log('Encountered the following error:', err);
-      let dataNew = data.slice(data.indexOf('Router.map'))
-      let parseResults = Parser.extend(classFields).parse(dataNew, {
-        sourceType: 'module',
-      });
+  name: 'sitemapAutogenerator',
+  includedCommands: function () {
+    return {
+      sitemapAutogenerator: {
+        name: 'sitemapAutogenerator',
+        description: 'A command to generate ember links',
+        run: function (triggerSitemapBuilder) {
+          console.log('sitemapAutogenerator started!');
+          let fileName = ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
+          baseURL = fileName;
+          fs.readFile(pathForRouterJS, 'utf8', function (err, data) {
+            if (err) return console.log('Encountered the following error:', err);
+            let dataNew = data.slice(data.indexOf('Router.map'))
+            let parseResults = Parser.extend(classFields).parse(dataNew, {
+              sourceType: 'module',
+            });
 
-      let arrayToMap = parseResults.body;
-      arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
-        if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
-          routerFound = true;
-          let innerArrayToMap = item.expression.arguments[0].body.body;
-          isSingleOrNestedRoute()
-          innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
-            isSingleOrNestedRoute(item.expression.arguments);
+            let arrayToMap = parseResults.body;
+            arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
+              if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
+                routerFound = true;
+                let innerArrayToMap = item.expression.arguments[0].body.body;
+                isSingleOrNestedRoute()
+                innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
+                  isSingleOrNestedRoute(item.expression.arguments);
+                });
+              }
+            });
+
+            if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
+              ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
+                routeArray.push({
+                  completeRoute: '',
+                  path: path
+                });
+              });
+            }
+
+            if (routerFound === false) console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
+            else {
+              // console.log(routeArray);
+              writeToFile();
+            }
           });
         }
-      });
-
-      if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
-        ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
-          routeArray.push({
-            completeRoute: '',
-            path: path
-          });
-        });
-      }
-
-      if (routerFound === false) console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
-      else {
-        // console.log(routeArray);
-        writeToFile();
-      }
-    });
+      },
+    };
   },
+
 };
 
 function processPath(path, message) {
@@ -203,7 +214,7 @@ function writeToFile() {
       let currentPath = routeArray[i].path;
       currentPriority = priority;
       ignoreArry.map(function (b, y) {
-        if (ignoreArry[y] == currentPath){
+        if (ignoreArry[y] == currentPath) {
           isIgnored = true;
         }
       });
