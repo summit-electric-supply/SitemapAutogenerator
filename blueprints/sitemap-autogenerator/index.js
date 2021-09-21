@@ -221,7 +221,7 @@ function writeToFile() {
 
   let fileName = ENV()?.sitemapAutogenerator?.fileName ?? 'sitemap.xml';
 
-  fs.writeFile(`dist/${fileName}`, fileData, function (err) {
+  fs.writeFile(`public/${fileName}`, fileData, function (err) {
     if (err) {
       return console.log(err);
     }

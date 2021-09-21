@@ -24,7 +24,7 @@ To install simply run:
 
   Add the following code to **package.json**:
 ```js
-"postbuild": "node -e \"require('./node_modules/sitemap-autogenerator/blueprints/sitemap-autogenerator/index').triggerSitemapBuilder('<YOUR SITE ROOT URL>')\"",
+"postbuild": "node -e \"require('./node_modules/sitemap-autogenerator/blueprints/sitemap-autogenerator/index').triggerSitemapBuilder('YOUR SITE ROOT URL')\"",
 ```
 
   Be sure to not have a trailing `/` after `<YOUR SITE ROOT URL>` or else you will get double `//` in your generated **sitemap.xml**
@@ -77,29 +77,33 @@ Please add these to your environment.js file as shown in the example below
     <!-- environment.js -->
     ...
 
-    ENV['sitemap-autogenerator'] = {
-    fileName: 'sitemap.xml', //Optional (if not included in ENV, default value is 'sitemap.xml')
-    changeFrequency: 'weekly', // Optional (if not included in ENV, default value is 'daily')
-    defaultPriorityValue: '0.3', // Optional (if not included in ENV, default value is '0.5')
-    showLog: true,
-    ignoreTheseRoutes: { // Optional (if not included in ENV, all routes will be included in sitemap.xml except those with path "*"
-      'contact-us': true,
-      'contact': true,
-      'algorithmictradedeveloper': true,
-      'careers': true
-    },
-    customPriority: { // Optional (if not included in ENV, all values will be the default value '0.5')
-      'fpgaengineer': '0.2',
-      'systemapplicationdeveloper': '0.9',
-      'general': '0.7',
-      'coresoftwaredeveloper': '0.8'
-    },
-    pathsOutsideEmberApp: [ // Optional (pathsOutsideEmberApp may be omitted)
-      'blog',
-      'some/other/path.html'
-    ]
+    module.exports = function (environment) {
+      const ENV = {
+        sitemapAutogenerator: {
+        fileName: 'sitemap.xml', //Optional (if not included in ENV, default value is 'sitemap.xml')
+        changeFrequency: 'weekly', // Optional (if not included in ENV, default value is 'daily')
+        defaultPriorityValue: '0.3', // Optional (if not included in ENV, default value is '0.5')
+        showLog: true,
+        ignoreTheseRoutes: { // Optional (if not included in ENV, all routes will be included in sitemap.xml except those with path "*"
+          'contact-us': true,
+          'contact': true,
+          'algorithmictradedeveloper': true,
+          'careers': true
+        },
+        customPriority: { // Optional (if not included in ENV, all values will be the default value '0.5')
+          'fpgaengineer': '0.2',
+          'systemapplicationdeveloper': '0.9',
+          'general': '0.7',
+          'coresoftwaredeveloper': '0.8'
+        },
+        pathsOutsideEmberApp: [ // Optional (pathsOutsideEmberApp may be omitted)
+          'blog',
+          'some/other/path.html'
+        ]
 
-    ...
+        ...
+      }
+    }
   }
   ```
 
@@ -122,7 +126,7 @@ Please add these to your environment.js file as shown in the example below
 ## Example of Output
 
 ```xml
-<!-- myproject/dist/sitemap.xml -->
+<!-- myproject/public/sitemap.xml -->
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
