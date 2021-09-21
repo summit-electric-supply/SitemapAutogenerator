@@ -1,12 +1,11 @@
 /* eslint-env node */
 const { Parser } = require('acorn');
 const classFields = require('acorn-class-fields');
-const axios = require('axios')
 
 var ENV = require(process.cwd() + '/config/environment');
 const fs = require('fs');
 
-var routerFound = false,
+var baseURL, routerFound = false,
   fileData = '',
   routeArray = [];
 
@@ -36,7 +35,8 @@ if (ENV().sitemapAutogenerator !== undefined && ENV().sitemapAutogenerator.ignor
 
 module.exports = {
   description: '',
-  triggerSitemapBuilder: function () {
+  triggerSitemapBuilder: function (theURL) {
+    baseURL = theURL;
     fs.readFile(pathForRouterJS, 'utf8', function (err, data) {
       if (err) return console.log('Encountered the following error:', err);
       let dataNew = data.slice(data.indexOf('Router.map'))
@@ -49,7 +49,7 @@ module.exports = {
         if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
           routerFound = true;
           let innerArrayToMap = item.expression.arguments[0].body.body;
-          // isSingleOrNestedRoute()
+          isSingleOrNestedRoute()
           innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
             isSingleOrNestedRoute(item.expression.arguments);
           });
@@ -191,57 +191,46 @@ function writeToFile() {
   }
 
   routeArray.map(function (x, i) {
-    if (i === 0) fileData += ('{\n "data": [ \n');
+    let currentPriority = '0.9';
     let isIgnored = false;
-    var regex = /\//g;
-    let currentPath = routeArray[i].path;
-    currentPriority = priority;
-    ignoreArry.map(function (b, y) {
-      if (ignoreArry[y] == currentPath) {
-        isIgnored = true;
-      }
-    });
-
+    if (i == 0) {
+      fileData += header; // Write the header
+    } else {
+      var regex = /\//g;
+      let currentPath = routeArray[i].path;
+      currentPriority = priority;
+      ignoreArry.map(function (b, y) {
+        if (ignoreArry[y] == currentPath){
+          isIgnored = true;
+        }
+      });
+    }
 
     if (ENV().sitemapAutogenerator === undefined || ENV().sitemapAutogenerator.ignoreTheseRoutes === undefined || isIgnored !== true) {
-      fileData += ('{"link": "');
+      fileData += ('\n  <url>\n    <loc>');
       writeToFileData(i, showLog, isIgnored);
-      if (i === (routeArray.length - 1)) {
-        fileData += ('"} \n');
-      } else {
-        fileData += ('"}, \n');
-      }
+
       if (ENV().sitemapAutogenerator !== undefined && ENV().sitemapAutogenerator.customPriority !== undefined && ENV().sitemapAutogenerator.customPriority[currentPath] !== undefined) currentPriority = ENV().sitemapAutogenerator.customPriority[currentPath];
+
+      fileData += ('</loc>\n    <lastmod>' + formatDate() + '</lastmod>\n    <changefreq>' + changeFrequency + '</changefreq>\n    <priority>' + currentPriority + '</priority>\n  </url>');
     } else {
       writeToFileData(i, showLog, isIgnored);
     }
   });
-  fileData += ('] \n}');
+  fileData += ('\n</urlset>');
 
-  debugger;
-  // fs.writeFile("public/sitemap.json", fileData, function (err) {
-  //   if (err) {
-  //     return console.log(err);
-  //   }
-  //   // console.log("\nA new version of sitemap.xml was successfully saved\n");
-  // });
-  axios
-  .post('https://summit.com/sitemap', {
-    data: fileData
-  })
-  .then(res => {
-    console.log(`statusCode: ${res.status}`)
-    console.log(res)
-  })
-  .catch(error => {
-    console.error(error)
-  })
+  let fileName = ENV()?.sitemapAutogenerator?.fileName ?? 'sitemap.xml';
 
+  fs.writeFile(`dist/${fileName}`, fileData, function (err) {
+    if (err) {
+      return console.log(err);
+    }
+  });
 }
 
 function writeToFileData(i, showLog, isIgnored) {
   let isIgnoredMessage = '** Ignored path:';
-  let pathString = '';
+  let pathString = baseURL
   if (routeArray[i].completeRoute !== "") {
     let routeString;
     if (routeArray[i].completeRoute.charAt(0) === "/") routeString = routeArray[i].completeRoute.substr(1);
