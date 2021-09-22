@@ -1,5 +1,4 @@
 /* eslint-env node */
-/* jshint node: true */
 'use strict';
 
 const { Parser } = require('acorn');
@@ -7,6 +6,7 @@ const classFields = require('acorn-class-fields');
 
 var ENV = require(process.cwd() + '/config/environment');
 const fs = require('fs');
+const doAsync = require('doasync');
 
 var baseURL, routerFound = false,
   fileData = '',
@@ -35,58 +35,6 @@ if (ENV().sitemapAutogenerator !== undefined && ENV().sitemapAutogenerator.ignor
     }
   });
 }
-
-module.exports = {
-  name: 'sitemapAutogenerator',
-  includedCommands: function () {
-    return {
-      sitemapAutogenerator: {
-        name: 'sitemapAutogenerator',
-        description: 'A command to generate ember links',
-        run: function (triggerSitemapBuilder) {
-          console.log('sitemapAutogenerator started!');
-          let fileName = ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
-          baseURL = fileName;
-          fs.readFile(pathForRouterJS, 'utf8', function (err, data) {
-            if (err) return console.log('Encountered the following error:', err);
-            let dataNew = data.slice(data.indexOf('Router.map'))
-            let parseResults = Parser.extend(classFields).parse(dataNew, {
-              sourceType: 'module',
-            });
-
-            let arrayToMap = parseResults.body;
-            arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
-              if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
-                routerFound = true;
-                let innerArrayToMap = item.expression.arguments[0].body.body;
-                isSingleOrNestedRoute()
-                innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
-                  isSingleOrNestedRoute(item.expression.arguments);
-                });
-              }
-            });
-
-            if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
-              ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
-                routeArray.push({
-                  completeRoute: '',
-                  path: path
-                });
-              });
-            }
-
-            if (routerFound === false) console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
-            else {
-              // console.log(routeArray);
-              writeToFile();
-            }
-          });
-        }
-      },
-    };
-  },
-
-};
 
 function processPath(path, message) {
   if (!path.match(/\*/g) && !path.match(/\/\:/)) { // Exclude any route with ':' in the path (for route variable) and any route with '*' in the path
@@ -243,6 +191,7 @@ function writeToFile() {
 }
 
 function writeToFileData(i, showLog, isIgnored) {
+  console.log("Start write")
   let isIgnoredMessage = '** Ignored path:';
   let pathString = baseURL
   if (routeArray[i].completeRoute !== "") {
@@ -277,4 +226,64 @@ function checkForQuoteType(data) {
     if (data.includes("'")) return data.match(/\'.*\'/)[0].replace(/'|"/g, "");
     else return data.match(/\".*\"/)[0].replace(/'|"/g, "");
   } else return data;
+}
+
+function readFile() {
+  doAsync(fs).readFile(pathForRouterJS)
+    .then((data) => {
+    console.log(data);
+    console.log("start reading");
+    if (err) return console.log('Encountered the following error:', err);
+    console.log("data", data)
+    let dataNew = data.slice(data.indexOf('Router.map'))
+    let parseResults = Parser.extend(classFields).parse(dataNew, {
+      sourceType: 'module',
+    });
+    console.log("Start read")
+
+    let arrayToMap = parseResults.body;
+    arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
+      if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
+        routerFound = true;
+        let innerArrayToMap = item.expression.arguments[0].body.body;
+        isSingleOrNestedRoute()
+        innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
+          isSingleOrNestedRoute(item.expression.arguments);
+        });
+      }
+    });
+
+    if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
+      ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
+        routeArray.push({
+          completeRoute: '',
+          path: path
+        });
+      });
+    }
+
+    if (routerFound === false) console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
+    else {
+      // console.log(routeArray);
+      writeToFile();
+    }
+    console.log("end trigger")
+  });
+}
+
+module.exports = {
+  name: 'sitemapAutogenerator',
+  includedCommands: function () {
+    return {
+      sitemapAutogenerator: {
+        name: 'sitemapAutogenerator',
+        description: 'A command to generate ember links',
+        run: function () {
+          console.log("Start trigger")
+          baseURL = ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
+          readFile()
+        }
+      },
+    };
+  }
 }
