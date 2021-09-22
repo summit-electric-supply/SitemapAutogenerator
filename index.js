@@ -178,11 +178,8 @@ function writeToFile() {
 
   let fileName = ENV()?.sitemapAutogenerator?.fileName ?? 'sitemap.xml';
 
-  fs.writeFile(`public/${fileName}`, fileData, function (err) {
-    if (err) {
-      return console.log(err);
-    }
-  });
+  var dataWrite = fs.writeFileSync(`public/${fileName}`, fileData);
+  return dataWrite;
 }
 
 function writeToFileData(i, showLog, isIgnored) {
