@@ -17,14 +17,13 @@ Installation
 To install simply run:
 
 ```
- npm install --save-dev sitemap-autogenerator
+
 ```
 
 ## Usage
 
 Type in terminal: sitemapAutogenerator
-
-  Be sure to not have a trailing `/` after `<YOUR SITE ROOT URL>` or else you will get double `//` in your generated **sitemap.xml**
+Your can find you file in app/public directory.
 
   The [Sitemap protocol](https://www.sitemaps.org/protocol.html) consists of XML tags and must have the following tags:
   - `<urlset>` Encapsulates the file and references the current protocol standard.
@@ -77,6 +76,7 @@ Please add these to your environment.js file as shown in the example below
     module.exports = function (environment) {
       const ENV = {
         sitemapAutogenerator: {
+        website: 'https://www.sitemap.com', //Type your website link (if not included in ENV, default value is 'https://www.sitemap.com')
         fileName: 'sitemap.xml', //Optional (if not included in ENV, default value is 'sitemap.xml')
         changeFrequency: 'weekly', // Optional (if not included in ENV, default value is 'daily')
         defaultPriorityValue: '0.3', // Optional (if not included in ENV, default value is '0.5')
@@ -103,16 +103,6 @@ Please add these to your environment.js file as shown in the example below
     }
   }
   ```
-
-  `sitemap-autogenerator` will run at the end of each Ember build, which are run with: `npm run build`
-
-  Alternatively, you can place the above script as a `"poststart"` hook in your **package.json** file and test that a **sitemap.xml** file is created when you stop `ember s`.
-
-  You should see the following log message right after the `ember-cli` logs `cleaning up...`
-
- ```
-  A new version of sitemap.xml was successfully saved
- ```
 
 ## Current Limitations
 

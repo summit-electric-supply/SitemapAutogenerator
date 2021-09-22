@@ -6,42 +6,41 @@ const classFields = require('acorn-class-fields');
 
 var ENV = require(process.cwd() + '/config/environment');
 const fs = require('fs');
-const doAsync = require('doasync');
 
-var baseURL, routerFound = false,
+var baseURL,
+  routerFound = false,
   fileData = '',
   routeArray = [];
 
-const pathForRouterJS = 'app/router.js',
-  currentDate = new Date();
+const currentDate = new Date();
 const header =
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
 let nestedPath = [];
 let ignoredPathObject = {};
-let ignoreArry = []
+let ignoreArry = [];
 
 if (ENV().sitemapAutogenerator !== undefined && ENV().sitemapAutogenerator.ignoreTheseRoutes !== undefined) { // Remove all / from ignoreTheseRoutes
   ignoredPathObject = ENV().sitemapAutogenerator.ignoreTheseRoutes;
   Object.keys(ignoredPathObject).map(function (key) {
-
     if (key.indexOf('/') > -1) {
-      let newKey = key.replace(/\//g, "");
+      let newKey = key.replace(/\//g, '');
       ignoredPathObject[newKey] = ignoredPathObject[key];
       delete ignoredPathObject[key];
     } else {
-      ignoreArry.push(key)
+      ignoreArry.push(key);
     }
   });
 }
 
-function processPath(path, message) {
-  if (!path.match(/\*/g) && !path.match(/\/\:/)) { // Exclude any route with ':' in the path (for route variable) and any route with '*' in the path
+function processPath(path) {
+  if (!path.match(/\*/g) && !path.match(/\/\:/)) {
+    // Exclude any route with ':' in the path (for route variable) and any route with '*' in the path
     // console.log(message, path);
     routeArray.push({
       completeRoute: combineAllPaths(nestedPath),
-      path: checkForQuoteType(path)
+      path: checkForQuoteType(path),
     });
   }
 }
@@ -50,11 +49,10 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
   if (itemExpressionArgument === undefined) {
     routeArray.push({
       completeRoute: '',
-      path: '/'
+      path: '/',
     });
   } else {
     if (itemExpressionArgument.length !== undefined) {
-
       if (itemExpressionArgument.length === 1) {
         processPath(itemExpressionArgument[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
 
@@ -68,7 +66,8 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
         nestedPath.push(itemExpressionArgument[1].properties[0].value.value);
         // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[1].properties[0].value.value);
         // console.log('nestedPath:', nestedPath);
-        let itemExpressionArgumentToRecurse = itemExpressionArgument[2].body.body;
+        let itemExpressionArgumentToRecurse =
+          itemExpressionArgument[2].body.body;
         itemExpressionArgumentToRecurse.map(function (item, index) {
           isSingleOrNestedRoute(item);
           if (index === itemExpressionArgumentToRecurse.length - 1) {
@@ -81,19 +80,19 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
           nestedPath.push(itemExpressionArgument[0].value);
           // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument[0].value);
           // console.log('nestedPath:', nestedPath);
-          let itemExpressionArgumentToRecurse = itemExpressionArgument[1].body.body;
+          let itemExpressionArgumentToRecurse =
+            itemExpressionArgument[1].body.body;
           itemExpressionArgumentToRecurse.map(function (item, index) {
-
             isSingleOrNestedRoute(item);
             if (index === itemExpressionArgumentToRecurse.length - 1) {
-
               nestedPath.pop();
               // console.log('nestedPath:', nestedPath);
             }
           });
         }
       }
-    } else { // Necessary for recursed routes
+    } else {
+      // Necessary for recursed routes
       if (itemExpressionArgument.expression.arguments.length === 1) {
         processPath(itemExpressionArgument.expression.arguments[0].value, '  *** It\'s a simple route, no nesting, and no specified path ->');
       } else if (itemExpressionArgument.expression.arguments.length === 2 && itemExpressionArgument.expression.arguments[1].properties !== undefined && itemExpressionArgument.expression.arguments[1].properties[0].key.name === "path") {
@@ -103,7 +102,6 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
         // console.log('!!!', itemExpressionArgument.expression.arguments[1].properties[0].value.value);
         processPath(itemExpressionArgument.expression.arguments[1].properties[0].value.value, '  *** It\'s a simple route with a specified path ->');
       } else {
-
         if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length > 0) {
           nestedPath.push(itemExpressionArgument.expression.arguments[0].value);
           // console.log('*** +++ Found a nested function with nested path name ->', itemExpressionArgument.expression.arguments[0].value);
@@ -116,11 +114,8 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
               // console.log('nestedPath:', nestedPath);
             }
           });
-        }
-        else if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length === 0) {
-
+        } else if (itemExpressionArgument.expression.arguments[1].type === "FunctionExpression" && itemExpressionArgument.expression.arguments[1].body.body.length === 0) {
           processPath(itemExpressionArgument.expression.arguments[0].value, '*** It\'s a simple route, no nesting, and no specified path ->');
-
         }
       }
     }
@@ -128,27 +123,28 @@ function isSingleOrNestedRoute(itemExpressionArgument) {
 }
 
 function combineAllPaths(pathArray) {
-  let path = "";
+  let path = '';
   pathArray.map(function (x, i) {
     if (i == 0) path += x;
-    else path += "/" + x;
+    else path += '/' + x;
   });
   return path;
 }
 
 function writeToFile() {
   let changeFrequency, priority, showLog; // Look for custom values for 'changeFrequency' and 'defaultPriorityValue' in environment.js
-  if (ENV().sitemapAutogenerator !== undefined) { // Check to see if user has created ENV "sitemap-autogenerator" in environment.js
+  if (ENV().sitemapAutogenerator !== undefined) {
+    // Check to see if user has created ENV "sitemap-autogenerator" in environment.js
     if (ENV().sitemapAutogenerator.changeFrequency !== undefined) changeFrequency = ENV().sitemapAutogenerator.changeFrequency;
-    else changeFrequency = "daily";
+    else changeFrequency = 'daily';
     if (ENV().sitemapAutogenerator.defaultPriorityValue !== undefined) priority = ENV().sitemapAutogenerator.defaultPriorityValue;
-    else priority = "0.5";
+    else priority = '0.5';
     if (ENV().sitemapAutogenerator.showLog !== undefined && ENV().sitemapAutogenerator.showLog === true) showLog = true;
     else showLog = false;
   } else {
     // console.log("\n! It looks like sitemap-autogenerator is installed but not properly configured. A default sitemap.xml will be created.\n! Please refer to the documentation regarding adding 'sitemap-autogenerator' to your ENV in environment.js file: https://www.npmjs.com/package/sitemap-autogenerator");
-    changeFrequency = "daily";
-    priority = "0.5";
+    changeFrequency = 'daily';
+    priority = '0.5';
     showLog = false;
   }
 
@@ -158,7 +154,6 @@ function writeToFile() {
     if (i == 0) {
       fileData += header; // Write the header
     } else {
-      var regex = /\//g;
       let currentPath = routeArray[i].path;
       currentPriority = priority;
       ignoreArry.map(function (b, y) {
@@ -191,24 +186,20 @@ function writeToFile() {
 }
 
 function writeToFileData(i, showLog, isIgnored) {
-  console.log("Start write")
-  let isIgnoredMessage = '** Ignored path:';
-  let pathString = baseURL
-  if (routeArray[i].completeRoute !== "") {
+  let pathString = baseURL;
+  if (routeArray[i].completeRoute !== '') {
     let routeString;
-    if (routeArray[i].completeRoute.charAt(0) === "/") routeString = routeArray[i].completeRoute.substr(1);
+    if (routeArray[i].completeRoute.charAt(0) === '/') routeString = routeArray[i].completeRoute.substr(1);
     else routeString = routeArray[i].completeRoute;
     pathString += '/' + routeString;
   }
-  if (routeArray[i].path !== "" && routeArray[i] !== "/") {
+  if (routeArray[i].path !== '' && routeArray[i] !== '/') {
     let cleanedPath;
-    if (routeArray[i].path.charAt(0) === "/") cleanedPath = routeArray[i].path.substr(1);
+    if (routeArray[i].path.charAt(0) === '/') cleanedPath = routeArray[i].path.substr(1);
     else cleanedPath = routeArray[i].path;
-    pathString += "/" + cleanedPath;
+    pathString += '/' + cleanedPath;
   }
-  if (isIgnored === false) fileData += (pathString);
-  if (showLog === true && isIgnored === false) console.log(pathString);
-  else if (showLog === true && isIgnored === true) console.log(isIgnoredMessage, pathString);
+  if (isIgnored === false) fileData += pathString;
 }
 
 function formatDate() {
@@ -229,46 +220,43 @@ function checkForQuoteType(data) {
 }
 
 function readFile() {
-  doAsync(fs).readFile(pathForRouterJS)
-    .then((data) => {
-    console.log(data);
-    console.log("start reading");
-    if (err) return console.log('Encountered the following error:', err);
-    console.log("data", data)
-    let dataNew = data.slice(data.indexOf('Router.map'))
-    let parseResults = Parser.extend(classFields).parse(dataNew, {
-      sourceType: 'module',
-    });
-    console.log("Start read")
+  var data = fs.readFileSync('./app/router.js', 'utf8');
 
-    let arrayToMap = parseResults.body;
-    arrayToMap.map(function (item) { // Look for the Router object in the file -> i.e. Router.map(function()...
-      if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
-        routerFound = true;
-        let innerArrayToMap = item.expression.arguments[0].body.body;
-        isSingleOrNestedRoute()
-        innerArrayToMap.map(function (item) { // Look for each this.route in Router.map
-          isSingleOrNestedRoute(item.expression.arguments);
-        });
-      }
-    });
+  let dataNew = data.slice(data.indexOf('Router.map'));
+  let parseResults = Parser.extend(classFields).parse(dataNew, {
+    sourceType: 'module',
+  });
 
-    if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
-      ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
-        routeArray.push({
-          completeRoute: '',
-          path: path
-        });
+  let arrayToMap = parseResults.body;
+  arrayToMap.map(function (item) {
+    // Look for the Router object in the file -> i.e. Router.map(function()...
+    if (item.type === "ExpressionStatement" && item.expression.callee.object.name === "Router") {
+      routerFound = true;
+      let innerArrayToMap = item.expression.arguments[0].body.body;
+      isSingleOrNestedRoute();
+      innerArrayToMap.map(function (item) {
+        // Look for each this.route in Router.map
+        isSingleOrNestedRoute(item.expression.arguments);
       });
     }
-
-    if (routerFound === false) console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
-    else {
-      // console.log(routeArray);
-      writeToFile();
-    }
-    console.log("end trigger")
   });
+
+  if (ENV().sitemapAutogenerator !== undefined && Array.isArray(ENV().sitemapAutogenerator.pathsOutsideEmberApp)) {
+    ENV().sitemapAutogenerator.pathsOutsideEmberApp.forEach(function (path) {
+      routeArray.push({
+        completeRoute: '',
+        path: path,
+      });
+    });
+  }
+
+  if (routerFound === false) {
+    console.log('!!! sitemap-autogenerator could not find a Router object in your ember router.js file, process aborted!');
+  } else {
+    // console.log(routeArray);
+    writeToFile();
+  }
+  console.log('Sitemap generated Successful! Your can find you file in app/public directory.');
 }
 
 module.exports = {
@@ -279,11 +267,13 @@ module.exports = {
         name: 'sitemapAutogenerator',
         description: 'A command to generate ember links',
         run: function () {
-          console.log("Start trigger")
-          baseURL = ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
-          readFile()
-        }
+          console.log('Starting Sitemap Autogenerator');
+          baseURL =
+            ENV()?.sitemapAutogenerator?.website ?? 'https://www.sitemap.com';
+
+          readFile();
+        },
       },
     };
-  }
-}
+  },
+};
